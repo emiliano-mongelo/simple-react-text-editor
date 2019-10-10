@@ -2,12 +2,10 @@ import React, { useCallback } from "react";
 import "./ControlPanel.css";
 import * as availablePlugins from "../../plugins";
 
-function ControlPanel() {
-
+function ControlPanel({ setLoading }) {
 	const handleClick = useCallback((e, plugin) => {
-		availablePlugins[plugin].apply();
+		availablePlugins[plugin].apply({ setLoading });
 	}, []);
-
   return (
     <div id="control-panel">
       <div id="format-actions">

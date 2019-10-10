@@ -1,60 +1,84 @@
-import axios from 'axios';
+import axios from "axios";
+import ReactDOM from "react-dom";
+import React, {Fragment, useState} from "react";
+import './synonyms.css';
+
+function Modal({ list, onClick }) {
+  const [visible, setVisible] = useState(true);
+  const handleClick = e => {
+    setVisible(false);
+    onClick(e);
+  };
+
+  return (
+    visible && (
+      <div className="modal-overlay" onClick={handleClick}>
+        <div className="modal-content">
+          <div className="bg-white br2">
+            {list.length ? (
+              <div className='pa4'>
+                {list.length && (
+                  <Fragment>
+                    <b>Synonyms: </b>
+                    <div className='dib'>
+                      {list.map((e, i) => (
+                        <span className="pr1 pointer" key={i}>{e.word}</span>
+                      ))}
+                    </div>
+                  </Fragment>
+                )}
+              </div>
+            ) : (
+              <div className='pt2 pb4 tc'>
+                <h3>Sorry</h3>
+                <p>We couldn't find any word</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  );
+}
 
 export default {
-  label: 'Synonyms',
-  apply: function() {
+  label: "Synonyms",
+  apply: function({ setLoading }) {
     console.info(`[Plugin::apply] Synonyms`);
-    const selection = document.getSelection().toString().trim();
+    const selection = document
+      .getSelection()
+      .toString()
+      .trim();
 
-    if (selection && selection !== '') {
+    if (selection && selection !== "") {
+      setLoading(true);
+
+      document.execCommand(
+        "insertHTML",
+        false,
+        `<span id="mark">${selection}</span>`
+      );
+
       axios
         .get(`https://api.datamuse.com/words?rel_syn=${selection}`)
         .then(({ data }) => {
-          if (!data.length) {
-            alert(`No synonyms for ${selection}`);
-            return;
-          }
+          setLoading(false);
 
-          if (!document.querySelector('.modal-overlay')) {
-            const modalOverlay = document.createElement("div");
-            modalOverlay.setAttribute('class', 'modal-overlay');
-            document.body.appendChild(modalOverlay);
-          }
+          const onClick = e => {
+            const target = e.target;
 
-          if (!document.querySelector('.modal')) {
-            const modalDiv = document.createElement("div");
-            modalDiv.setAttribute('class', 'modal');
+            if (target.nodeName === "SPAN") {
+              const el = document.getElementById('mark');
+              el.parentNode.replaceChild(document.createTextNode(target.innerText), el);
+            }
+            ReactDOM.unmountComponentAtNode(document.getElementById("modal"));
+          };
 
-            const listDiv = document.createElement("div");
-            listDiv.setAttribute('class', 'list-container');
-
-            const title = document.createElement("h1");
-            title.innerText = "Available synonyms";
-            listDiv.appendChild(title);
-
-            modalDiv.appendChild(listDiv);
-
-            document.body.appendChild(modalDiv);
-          }
-
-          const modal = document.querySelector('.modal');
-          const overlay = document.querySelector('.modal-overlay');
-          const list = document.querySelector('.list-container');
-
-          data.forEach(({word}) => {
-            const button = document.createElement("button");
-            button.innerText = word;
-            button.addEventListener('click', () => {
-              document.execCommand("insertHTML", false, word);
-              modal.style.display = 'none';
-              overlay.style.display = 'none';
-            });
-            list.appendChild(button);
-          });
-
-          modal.style.display = 'block';
-          overlay.style.display = 'block';
+          ReactDOM.render(
+            <Modal className="modal" list={data} onClick={e => onClick(e)} />,
+            document.getElementById("modal")
+          );
         });
     }
   }
-}
+};
